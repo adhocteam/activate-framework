@@ -20,9 +20,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check source token configuration
+        id: source_token_config
+        env:
+          APP_ID: ${{ secrets.ACTIVATE_CORE_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.ACTIVATE_CORE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -n "${APP_ID}" ] && [ -n "${APP_PRIVATE_KEY}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate source access token
         id: source_token
-        if: ${{ secrets.ACTIVATE_CORE_APP_ID != '' && secrets.ACTIVATE_CORE_APP_PRIVATE_KEY != '' }}
+        if: ${{ steps.source_token_config.outputs.enabled == 'true' }}
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.ACTIVATE_CORE_APP_ID }}
