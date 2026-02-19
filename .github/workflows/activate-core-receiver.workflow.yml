@@ -63,7 +63,7 @@ jobs:
       - name: Download release artifact
         env:
           ARTIFACT_URL: ${{ github.event.client_payload.artifactUrl }}
-          SOURCE_TOKEN: ${{ steps.source_token.outputs.token }}
+          SOURCE_TOKEN: ${{ steps.source_token.outputs.token || github.event.client_payload.sourceDownloadToken }}
         run: |
           ASSET_NAME="$(basename "${ARTIFACT_URL}")"
           if [[ "${ARTIFACT_URL}" =~ ^https://github.com/([^/]+)/([^/]+)/releases/download/([^/]+)/.+$ ]]; then
