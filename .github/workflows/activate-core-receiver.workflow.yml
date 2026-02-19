@@ -15,30 +15,60 @@ permissions:
 jobs:
   receive-update:
     runs-on: ubuntu-latest
-    if: github.event.client_payload.artifact_url != ''
+    if: github.event.client_payload.artifactUrl != ''
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Validate dispatch payload
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
+          CHECKSUM: ${{ github.event.client_payload.checksum }}
+          ARTIFACT_URL: ${{ github.event.client_payload.artifactUrl }}
+        run: |
+          if [ -z "${VERSION}" ]; then
+            echo "::error title=Missing payload field::client_payload.version is required."
+            exit 1
+          fi
+          if [ -z "${CHECKSUM}" ]; then
+            echo "::error title=Missing payload field::client_payload.checksum is required."
+            exit 1
+          fi
+          if [ -z "${ARTIFACT_URL}" ]; then
+            echo "::error title=Missing payload field::client_payload.artifactUrl is required."
+            exit 1
+          fi
+
       - name: Download release artifact
         env:
-          ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}
-        run: curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz
+          ARTIFACT_URL: ${{ github.event.client_payload.artifactUrl }}
+        run: |
+          curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz || {
+            echo "::error title=Artifact download failed::Unable to download $ARTIFACT_URL"
+            exit 1
+          }
 
       - name: Verify artifact checksum
         env:
           EXPECTED_CHECKSUM: ${{ github.event.client_payload.checksum }}
         run: |
-          echo "$EXPECTED_CHECKSUM  activate-core.tar.gz" | sha256sum --check --status
+          echo "$EXPECTED_CHECKSUM  activate-core.tar.gz" | sha256sum --check --status || {
+            echo "::error title=Checksum verification failed::Downloaded artifact checksum does not match payload checksum."
+            exit 1
+          }
 
       - name: Sync activate core to vendor/activate-core
-        run: bash templates/activate-core-sync.sh activate-core.tar.gz vendor/activate-core
+        run: |
+          bash templates/activate-core-sync.sh activate-core.tar.gz vendor/activate-core || {
+            echo "::error title=Sync step failed::Expected templates/activate-core-sync.sh and valid artifact contents."
+            exit 1
+          }
 
       - name: Run repository quality gates
         run: |
-          npm ci
-          npm run lint
-          npm test --if-present
+          npm ci || { echo "::error title=Quality gates failed::npm ci failed."; exit 1; }
+          npm run lint || { echo "::error title=Quality gates failed::npm run lint failed."; exit 1; }
+          npm test --if-present || { echo "::error title=Quality gates failed::npm test failed."; exit 1; }
 
       - name: Open or update pull request
         uses: peter-evans/create-pull-request@v7
@@ -49,5 +79,5 @@ jobs:
           body: |
             Automated update from activate-core dispatcher.
             - Version: `${{ github.event.client_payload.version }}`
-            - Source: `${{ github.event.client_payload.artifact_url }}`
+            - Source: `${{ github.event.client_payload.artifactUrl }}`
           labels: activate-core-update
