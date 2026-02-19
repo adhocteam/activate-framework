@@ -1,0 +1,161 @@
+name: Receive Activate Framework Update
+
+on:
+  repository_dispatch:
+    types: [activate-core-update]
+
+concurrency:
+  group: activate-core-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  receive-update:
+    runs-on: ubuntu-latest
+    if: github.event.client_payload.artifact_url != ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check source token configuration
+        id: source_token_config
+        env:
+          APP_ID: ${{ secrets.ACTIVATE_CORE_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.ACTIVATE_CORE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -n "${APP_ID}" ] && [ -n "${APP_PRIVATE_KEY}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate source access token
+        id: source_token
+        if: ${{ steps.source_token_config.outputs.enabled == 'true' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.ACTIVATE_CORE_APP_ID }}
+          private-key: ${{ secrets.ACTIVATE_CORE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Validate dispatch payload
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
+          CHECKSUM: ${{ github.event.client_payload.checksum }}
+          ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}
+        run: |
+          if [ -z "${VERSION}" ]; then
+            echo "::error title=Missing payload field::client_payload.version is required."
+            exit 1
+          fi
+          if [ -z "${CHECKSUM}" ]; then
+            echo "::error title=Missing payload field::client_payload.checksum is required."
+            exit 1
+          fi
+          if [ -z "${ARTIFACT_URL}" ]; then
+            echo "::error title=Missing payload field::client_payload.artifact_url is required."
+            exit 1
+          fi
+
+      - name: Download release artifact
+        env:
+          ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}
+          SOURCE_TOKEN: ${{ steps.source_token.outputs.token || github.event.client_payload.sourceDownloadToken }}
+        run: |
+          ASSET_NAME="$(basename "${ARTIFACT_URL}")"
+          if [[ "${ARTIFACT_URL}" =~ ^https://github.com/([^/]+)/([^/]+)/releases/download/([^/]+)/.+$ ]]; then
+            SOURCE_OWNER="${BASH_REMATCH[1]}"
+            SOURCE_REPO="${BASH_REMATCH[2]}"
+            RELEASE_TAG="${BASH_REMATCH[3]}"
+            if [ -n "${SOURCE_TOKEN}" ]; then
+              RELEASE_API_URL="https://api.github.com/repos/${SOURCE_OWNER}/${SOURCE_REPO}/releases/tags/${RELEASE_TAG}"
+              RELEASE_JSON=$(curl -fsSL \
+                -H "Authorization: Bearer ${SOURCE_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "${RELEASE_API_URL}") || {
+                  echo "::error title=Release lookup failed::Could not read release ${SOURCE_OWNER}/${SOURCE_REPO}@${RELEASE_TAG} with app token."
+                  exit 1
+                }
+              ASSET_API_URL=$(printf '%s' "${RELEASE_JSON}" | jq -r --arg name "${ASSET_NAME}" '.assets[] | select(.name == $name) | .url' | head -n 1)
+              if [ -z "${ASSET_API_URL}" ] || [ "${ASSET_API_URL}" = "null" ]; then
+                echo "::error title=Artifact asset missing::Asset ${ASSET_NAME} not found in ${SOURCE_OWNER}/${SOURCE_REPO} release ${RELEASE_TAG}."
+                exit 1
+              fi
+              curl -fsSL \
+                -H "Authorization: Bearer ${SOURCE_TOKEN}" \
+                -H "Accept: application/octet-stream" \
+                "${ASSET_API_URL}" -o activate-framework.tar.gz || {
+                  echo "::error title=Artifact download failed::Could not download ${ASSET_NAME} from GitHub API."
+                  exit 1
+                }
+            else
+              curl -fsSL "$ARTIFACT_URL" -o activate-framework.tar.gz || {
+                echo "::error title=Artifact download failed::Private source release likely requires ACTIVATE_CORE_APP_ID and ACTIVATE_CORE_APP_PRIVATE_KEY secrets in this repo."
+                exit 1
+              }
+            fi
+          else
+            curl -fsSL "$ARTIFACT_URL" -o activate-framework.tar.gz || {
+              echo "::error title=Artifact download failed::Unable to download $ARTIFACT_URL"
+              exit 1
+            }
+          fi
+
+      - name: Verify artifact checksum
+        env:
+          EXPECTED_CHECKSUM: ${{ github.event.client_payload.checksum }}
+        run: |
+          echo "$EXPECTED_CHECKSUM  activate-framework.tar.gz" | sha256sum --check --status || {
+            echo "::error title=Checksum verification failed::Downloaded artifact checksum does not match payload checksum."
+            exit 1
+          }
+
+      - name: Sync activate framework into repo root
+        run: |
+          tmp_dir="$(mktemp -d)"
+          trap 'rm -rf "$tmp_dir"' EXIT
+          tar -xzf activate-framework.tar.gz -C "$tmp_dir" || {
+            echo "::error title=Sync step failed::Could not extract activate-framework artifact."
+            exit 1
+          }
+
+          for entry in activate-framework docs README.md; do
+            if [ -e "$tmp_dir/$entry" ]; then
+              rm -rf "$entry"
+              mkdir -p "$(dirname "$entry")"
+              cp -R "$tmp_dir/$entry" "$entry"
+            fi
+          done
+
+          [ -f activate-framework/AGENTS.md ] || {
+            echo "::error title=Extraction layout invalid::Expected activate-framework/AGENTS.md after sync."
+            exit 1
+          }
+
+      - name: Run repository quality gates
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci || { echo "::error title=Quality gates failed::npm ci failed."; exit 1; }
+          elif [ -f package.json ]; then
+            npm install || { echo "::error title=Quality gates failed::npm install failed."; exit 1; }
+          else
+            echo "::warning title=Quality gates skipped::No package.json found."
+            exit 0
+          fi
+          npm run lint --if-present || { echo "::error title=Quality gates failed::npm run lint failed."; exit 1; }
+          npm test --if-present || { echo "::error title=Quality gates failed::npm test failed."; exit 1; }
+
+      - name: Open or update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/activate-framework-update
+          commit-message: "chore: sync activate framework from upstream"
+          title: "chore: sync activate framework from upstream"
+          body: |
+            Automated update from activate framework dispatcher.
+            - Version: `${{ github.event.client_payload.version }}`
+            - Source: `${{ github.event.client_payload.artifact_url }}`
+          labels: activate-framework-update
