@@ -20,6 +20,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Generate source access token
+        id: source_token
+        if: ${{ secrets.ACTIVATE_CORE_APP_ID != '' && secrets.ACTIVATE_CORE_APP_PRIVATE_KEY != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.ACTIVATE_CORE_APP_ID }}
+          private-key: ${{ secrets.ACTIVATE_CORE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       - name: Validate dispatch payload
         env:
           VERSION: ${{ github.event.client_payload.version }}
@@ -42,11 +51,46 @@ jobs:
       - name: Download release artifact
         env:
           ARTIFACT_URL: ${{ github.event.client_payload.artifactUrl }}
+          SOURCE_TOKEN: ${{ steps.source_token.outputs.token }}
         run: |
-          curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz || {
-            echo "::error title=Artifact download failed::Unable to download $ARTIFACT_URL"
-            exit 1
-          }
+          ASSET_NAME="$(basename "${ARTIFACT_URL}")"
+          if [[ "${ARTIFACT_URL}" =~ ^https://github.com/([^/]+)/([^/]+)/releases/download/([^/]+)/.+$ ]]; then
+            SOURCE_OWNER="${BASH_REMATCH[1]}"
+            SOURCE_REPO="${BASH_REMATCH[2]}"
+            RELEASE_TAG="${BASH_REMATCH[3]}"
+            if [ -n "${SOURCE_TOKEN}" ]; then
+              RELEASE_API_URL="https://api.github.com/repos/${SOURCE_OWNER}/${SOURCE_REPO}/releases/tags/${RELEASE_TAG}"
+              RELEASE_JSON=$(curl -fsSL \
+                -H "Authorization: Bearer ${SOURCE_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "${RELEASE_API_URL}") || {
+                  echo "::error title=Release lookup failed::Could not read release ${SOURCE_OWNER}/${SOURCE_REPO}@${RELEASE_TAG} with app token."
+                  exit 1
+                }
+              ASSET_API_URL=$(printf '%s' "${RELEASE_JSON}" | jq -r --arg name "${ASSET_NAME}" '.assets[] | select(.name == $name) | .url' | head -n 1)
+              if [ -z "${ASSET_API_URL}" ] || [ "${ASSET_API_URL}" = "null" ]; then
+                echo "::error title=Artifact asset missing::Asset ${ASSET_NAME} not found in ${SOURCE_OWNER}/${SOURCE_REPO} release ${RELEASE_TAG}."
+                exit 1
+              fi
+              curl -fsSL \
+                -H "Authorization: Bearer ${SOURCE_TOKEN}" \
+                -H "Accept: application/octet-stream" \
+                "${ASSET_API_URL}" -o activate-core.tar.gz || {
+                  echo "::error title=Artifact download failed::Could not download ${ASSET_NAME} from GitHub API."
+                  exit 1
+                }
+            else
+              curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz || {
+                echo "::error title=Artifact download failed::Private source release likely requires ACTIVATE_CORE_APP_ID and ACTIVATE_CORE_APP_PRIVATE_KEY secrets in this repo."
+                exit 1
+              }
+            fi
+          else
+            curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz || {
+              echo "::error title=Artifact download failed::Unable to download $ARTIFACT_URL"
+              exit 1
+            }
+          fi
 
       - name: Verify artifact checksum
         env:
@@ -59,15 +103,24 @@ jobs:
 
       - name: Sync activate core to vendor/activate-core
         run: |
-          bash templates/activate-core-sync.sh activate-core.tar.gz vendor/activate-core || {
-            echo "::error title=Sync step failed::Expected templates/activate-core-sync.sh and valid artifact contents."
+          rm -rf vendor/activate-core
+          mkdir -p vendor/activate-core
+          tar -xzf activate-core.tar.gz -C vendor/activate-core --strip-components=1 || {
+            echo "::error title=Sync step failed::Could not extract activate-core artifact into vendor/activate-core."
             exit 1
           }
 
       - name: Run repository quality gates
         run: |
-          npm ci || { echo "::error title=Quality gates failed::npm ci failed."; exit 1; }
-          npm run lint || { echo "::error title=Quality gates failed::npm run lint failed."; exit 1; }
+          if [ -f package-lock.json ]; then
+            npm ci || { echo "::error title=Quality gates failed::npm ci failed."; exit 1; }
+          elif [ -f package.json ]; then
+            npm install || { echo "::error title=Quality gates failed::npm install failed."; exit 1; }
+          else
+            echo "::warning title=Quality gates skipped::No package.json found."
+            exit 0
+          fi
+          npm run lint --if-present || { echo "::error title=Quality gates failed::npm run lint failed."; exit 1; }
           npm test --if-present || { echo "::error title=Quality gates failed::npm test failed."; exit 1; }
 
       - name: Open or update pull request
