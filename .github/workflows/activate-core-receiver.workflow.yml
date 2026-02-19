@@ -1,0 +1,53 @@
+name: Receive Activate Core Update
+
+on:
+  repository_dispatch:
+    types: [activate-core-update]
+
+concurrency:
+  group: activate-core-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  receive-update:
+    runs-on: ubuntu-latest
+    if: github.event.client_payload.artifact_url != ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download release artifact
+        env:
+          ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}
+        run: curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz
+
+      - name: Verify artifact checksum
+        env:
+          EXPECTED_CHECKSUM: ${{ github.event.client_payload.checksum }}
+        run: |
+          echo "$EXPECTED_CHECKSUM  activate-core.tar.gz" | sha256sum --check --status
+
+      - name: Sync activate core to vendor/activate-core
+        run: bash templates/activate-core-sync.sh activate-core.tar.gz vendor/activate-core
+
+      - name: Run repository quality gates
+        run: |
+          npm ci
+          npm run lint
+          npm test --if-present
+
+      - name: Open or update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/activate-core-update
+          commit-message: "chore: sync activate core from upstream"
+          title: "chore: sync activate core from upstream"
+          body: |
+            Automated update from activate-core dispatcher.
+            - Version: `${{ github.event.client_payload.version }}`
+            - Source: `${{ github.event.client_payload.artifact_url }}`
+          labels: activate-core-update
