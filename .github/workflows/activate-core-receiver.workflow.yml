@@ -15,7 +15,7 @@ permissions:
 jobs:
   receive-update:
     runs-on: ubuntu-latest
-    if: github.event.client_payload.artifactUrl != ''
+    if: github.event.client_payload.artifact_url != ''
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
         env:
           VERSION: ${{ github.event.client_payload.version }}
           CHECKSUM: ${{ github.event.client_payload.checksum }}
-          ARTIFACT_URL: ${{ github.event.client_payload.artifactUrl }}
+          ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}
         run: |
           if [ -z "${VERSION}" ]; then
             echo "::error title=Missing payload field::client_payload.version is required."
@@ -56,13 +56,13 @@ jobs:
             exit 1
           fi
           if [ -z "${ARTIFACT_URL}" ]; then
-            echo "::error title=Missing payload field::client_payload.artifactUrl is required."
+            echo "::error title=Missing payload field::client_payload.artifact_url is required."
             exit 1
           fi
 
       - name: Download release artifact
         env:
-          ARTIFACT_URL: ${{ github.event.client_payload.artifactUrl }}
+          ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}
           SOURCE_TOKEN: ${{ steps.source_token.outputs.token || github.event.client_payload.sourceDownloadToken }}
         run: |
           ASSET_NAME="$(basename "${ARTIFACT_URL}")"
@@ -121,6 +121,10 @@ jobs:
             echo "::error title=Sync step failed::Could not extract activate-core artifact into vendor/activate-core."
             exit 1
           }
+          [ -f vendor/activate-core/AGENTS.md ] || {
+            echo "::error title=Extraction layout invalid::Expected vendor/activate-core/AGENTS.md after --strip-components=1 extraction."
+            exit 1
+          }
 
       - name: Run repository quality gates
         run: |
@@ -144,5 +148,5 @@ jobs:
           body: |
             Automated update from activate-core dispatcher.
             - Version: `${{ github.event.client_payload.version }}`
-            - Source: `${{ github.event.client_payload.artifactUrl }}`
+            - Source: `${{ github.event.client_payload.artifact_url }}`
           labels: activate-core-update
