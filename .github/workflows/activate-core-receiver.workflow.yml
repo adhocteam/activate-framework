@@ -121,8 +121,8 @@ jobs:
             echo "::error title=Sync step failed::Could not extract activate-core artifact into vendor/activate-core."
             exit 1
           }
-          [ -f vendor/activate-core/AGENTS.md ] || {
-            echo "::error title=Extraction layout invalid::Expected vendor/activate-core/AGENTS.md after --strip-components=1 extraction."
+          [ -f vendor/activate-core/AGENTS.md ] || [ -f vendor/activate-core/core/AGENTS.md ] || {
+            echo "::error title=Extraction layout invalid::Expected vendor/activate-core/AGENTS.md (legacy) or vendor/activate-core/core/AGENTS.md (new format) after --strip-components=1 extraction."
             exit 1
           }
 
