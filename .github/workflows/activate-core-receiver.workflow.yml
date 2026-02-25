@@ -1,4 +1,4 @@
-name: Receive Activate Core Update
+name: Receive Activate Framework Update
 
 on:
   repository_dispatch:
@@ -87,18 +87,18 @@ jobs:
               curl -fsSL \
                 -H "Authorization: Bearer ${SOURCE_TOKEN}" \
                 -H "Accept: application/octet-stream" \
-                "${ASSET_API_URL}" -o activate-core.tar.gz || {
+                "${ASSET_API_URL}" -o activate-framework.tar.gz || {
                   echo "::error title=Artifact download failed::Could not download ${ASSET_NAME} from GitHub API."
                   exit 1
                 }
             else
-              curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz || {
+              curl -fsSL "$ARTIFACT_URL" -o activate-framework.tar.gz || {
                 echo "::error title=Artifact download failed::Private source release likely requires ACTIVATE_CORE_APP_ID and ACTIVATE_CORE_APP_PRIVATE_KEY secrets in this repo."
                 exit 1
               }
             fi
           else
-            curl -fsSL "$ARTIFACT_URL" -o activate-core.tar.gz || {
+            curl -fsSL "$ARTIFACT_URL" -o activate-framework.tar.gz || {
               echo "::error title=Artifact download failed::Unable to download $ARTIFACT_URL"
               exit 1
             }
@@ -108,21 +108,30 @@ jobs:
         env:
           EXPECTED_CHECKSUM: ${{ github.event.client_payload.checksum }}
         run: |
-          echo "$EXPECTED_CHECKSUM  activate-core.tar.gz" | sha256sum --check --status || {
+          echo "$EXPECTED_CHECKSUM  activate-framework.tar.gz" | sha256sum --check --status || {
             echo "::error title=Checksum verification failed::Downloaded artifact checksum does not match payload checksum."
             exit 1
           }
 
-      - name: Sync activate core to vendor/activate-core
+      - name: Sync activate framework into repo root
         run: |
-          rm -rf vendor/activate-core
-          mkdir -p vendor/activate-core
-          tar -xzf activate-core.tar.gz -C vendor/activate-core --strip-components=1 || {
-            echo "::error title=Sync step failed::Could not extract activate-core artifact into vendor/activate-core."
+          tmp_dir="$(mktemp -d)"
+          trap 'rm -rf "$tmp_dir"' EXIT
+          tar -xzf activate-framework.tar.gz -C "$tmp_dir" || {
+            echo "::error title=Sync step failed::Could not extract activate-framework artifact."
             exit 1
           }
-          [ -f vendor/activate-core/AGENTS.md ] || [ -f vendor/activate-core/core/AGENTS.md ] || {
-            echo "::error title=Extraction layout invalid::Expected vendor/activate-core/AGENTS.md (legacy) or vendor/activate-core/core/AGENTS.md (new format) after --strip-components=1 extraction."
+
+          for entry in activate-framework docs README.md; do
+            if [ -e "$tmp_dir/$entry" ]; then
+              rm -rf "$entry"
+              mkdir -p "$(dirname "$entry")"
+              cp -R "$tmp_dir/$entry" "$entry"
+            fi
+          done
+
+          [ -f activate-framework/AGENTS.md ] || {
+            echo "::error title=Extraction layout invalid::Expected activate-framework/AGENTS.md after sync."
             exit 1
           }
 
@@ -142,11 +151,11 @@ jobs:
       - name: Open or update pull request
         uses: peter-evans/create-pull-request@v7
         with:
-          branch: chore/activate-core-update
-          commit-message: "chore: sync activate core from upstream"
-          title: "chore: sync activate core from upstream"
+          branch: chore/activate-framework-update
+          commit-message: "chore: sync activate framework from upstream"
+          title: "chore: sync activate framework from upstream"
           body: |
-            Automated update from activate-core dispatcher.
+            Automated update from activate framework dispatcher.
             - Version: `${{ github.event.client_payload.version }}`
             - Source: `${{ github.event.client_payload.artifact_url }}`
-          labels: activate-core-update
+          labels: activate-framework-update
