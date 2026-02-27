@@ -41,8 +41,6 @@ activate-framework/
 
 ## Distributed Files
 
-The `activate-framework/` directory contains the core guidance files automatically synced from the upstream [activate-copilot](https://github.com/adhocteam/activate-copilot) repository:
-
 | File | Purpose |
 |------|---------|
 | `AGENTS.md` | Project-wide AI guidance — commit conventions, TDD expectations, workflow requirements |
@@ -52,17 +50,6 @@ The `activate-framework/` directory contains the core guidance files automatical
 | `prompts/accessibility-check.prompt.md` | Accessibility compliance check |
 | `prompts/code-review.prompt.md` | Code review workflow |
 | `prompts/create-adr.prompt.md` | Architecture Decision Record scaffolding |
-
-## How Updates Arrive
-
-This repository receives updates automatically via the activate-core delivery pipeline:
-
-1. A new release is tagged in `activate-copilot`
-2. The release workflow packages the core framework files and publishes them as a release asset
-3. The dispatch workflow sends a `repository_dispatch` event to this repo with the artifact URL and checksum
-4. The receiver workflow (`.github/workflows/activate-core-receiver.workflow.yml`) downloads the artifact, verifies the checksum, extracts the files, and opens a pull request
-
-Updates arrive as PRs so they can be reviewed before merging.
 
 ## Getting Started
 
