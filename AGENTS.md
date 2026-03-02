@@ -17,8 +17,3 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗: Redesign the architecture without explicit instruction or approval
 - ⊗: Introduce new tools or services without explicit instruction or approval
 - ⊗: Make large sweeping changes across many apps or modules without explicit approval
-
-<!-- 
-## Code Map
-**For Agents:** Replace this with concise, high-level code-map and link to more detailed map in docs/REPO-STRUCTURE.md
--->

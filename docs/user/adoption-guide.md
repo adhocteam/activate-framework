@@ -250,7 +250,7 @@ Let early-adopter teams go deeper (standard or full bundle) while other teams st
 
 #### Scaling up
 
-Identify patterns that have proven valuable across early-adopter teams and promote them to the org-level bundle. Establish a clear process for teams to propose additions to the shared bundle. Use [activate-core-update automation](../EXAMPLE-USAGE.md#activate-core-receiver-template-example) to push bundle updates to downstream repos automatically.
+Identify patterns that have proven valuable across early-adopter teams and promote them to the org-level bundle. Establish a clear process for teams to propose additions to the shared bundle. Use automation (such as a `repository_dispatch`-based receiver workflow) to push bundle updates to downstream repos automatically.
 
 *Greenfield programs:* Onboard to the full bundle from day one. New programs are the easiest place to establish strong conventions.  
 *O&M programs:* Start with minimal and layer in incrementally. Don't attempt a full retrofit — identify the highest-friction workflows and target those first.
@@ -275,7 +275,7 @@ In general, prefer extension over overriding, and overriding over forking. The m
 
 ### Keeping Up With Upstream
 
-The Activate starter kit evolves. When the upstream bundle adds new instruction files or improves existing ones, teams need a way to receive those updates without losing local customizations. See the [activate-core receiver template](../EXAMPLE-USAGE.md#activate-core-receiver-template-example) for automating update PRs.
+The Activate starter kit evolves. When the upstream bundle adds new instruction files or improves existing ones, teams need a way to receive those updates without losing local customizations. Consider using a `repository_dispatch`-based receiver workflow to automate update PRs that preserve local overlays.
 
 ### When to Write Custom Files vs. Use Defaults
 

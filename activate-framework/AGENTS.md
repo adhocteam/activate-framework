@@ -42,7 +42,7 @@ graph TD
 
 ## File Hierarchy
 
-This project uses a four-tier hierarchy for AI agent guidance. See [ADR-001](https://github.com/adhocteam/activate-copilot/blob/main/docs/dev/adrs/ADR-001-agent-instructions-skills-files.md) for details.
+This project uses a four-tier hierarchy for AI agent guidance:
 
 | Tier | Location | Scope | Invocation |
 |------|----------|-------|------------|
