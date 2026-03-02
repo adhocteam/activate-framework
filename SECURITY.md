@@ -6,7 +6,7 @@ If you discover a security vulnerability in this repository, please report it re
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please email us at <security@adhocteam.us> with:
+Instead, please email us at <hello@adhocteam.us> with:
 
 - A description of the vulnerability
 - Steps to reproduce the issue
