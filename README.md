@@ -122,6 +122,10 @@ This repository receives periodic updates from the upstream Activate project. Up
 - [VS Code Customization Docs](https://code.visualstudio.com/docs/copilot/copilot-customization) — How VS Code's built-in customization primitives work
 - [VS Code Agent Customization Skill](https://github.com/microsoft/vscode-copilot-chat/tree/main/assets/prompts/skills/agent-customization/) — The built-in skill that understands these file types
 
+## Related Work
+
+- [cloud-gov-instructions](https://github.com/adhocteam/cloud-gov-instructions) — AI-assisted development guidance tailored for teams building on cloud.gov, also maintained by Ad Hoc
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to participate.
