@@ -2,6 +2,8 @@
 
 Agent, command, and skill definitions for Ad Hoc's Activate delivery methodology.
 
+> **Internal repository.** This is a private repo for Ad Hoc employees. A curated subset of the content here is published to a [public downstream repository](https://github.com/adhocteam/activate-framework-adhoc) for open-source consumption. See [Distribution Model](#distribution-model) for details.
+
 ## Overview
 
 This repository contains the AI agent configurations, reusable commands, and skill definitions that power Activate's human-led, AI-accelerated delivery approach. These components integrate with GitHub Copilot and other AI tools to augment cross-functional teams while preserving human accountability.
@@ -41,12 +43,19 @@ activate-copilot/
 │   ├── skills/                 # Skill definition files (Tier 3)
 │   └── agents/                 # Agent definitions (Tier 4)
 ├── src/                        # Distributable starter kit
-│   ├── AGENTS.md               # Template AGENTS.md for teams
-│   └── .github/
-│       ├── instructions/       # Template instruction files
-│       ├── prompts/            # Template prompt files
-│       ├── skills/             # Template skill files
-│       └── agents/             # Template agent definitions
+│   ├── core/                   # ← Public: shipped to open-source downstream repo
+│   │   ├── AGENTS.md
+│   │   ├── CUSTOMIZATION.md
+│   │   ├── instructions/       # General & security instruction files
+│   │   └── prompts/            # Prompt files (accessibility, code review, ADR)
+│   ├── ad-hoc/                 # ← Internal only: Ad Hoc proprietary content
+│   │   ├── instructions/       # Language & review instruction files
+│   │   ├── prompts/            # QASP and contract-specific prompts
+│   │   ├── skills/             # Installer, journey map, service blueprint, etc.
+│   │   └── agents/             # Service designer and other personas
+│   ├── ad-hoc-advanced/        # ← Internal only: advanced/experimental content
+│   └── manifest.json           # Maps source files → install/bundle/framework targets
+├── templates/                  # Scaffolds for each distributable file type
 └── docs/
     ├── user/                   # End-user documentation
     └── dev/                    # Contributor/internal documentation
@@ -183,6 +192,33 @@ Tasks 1-5 of the cross-org update plan introduce the baseline contract, receiver
 - Guardrail workflow: [`.github/workflows/validate-activate-core-delivery.yml`](./.github/workflows/validate-activate-core-delivery.yml)
 - Guardrail validator: [`scripts/validate-core-delivery.mjs`](./scripts/validate-core-delivery.mjs)
 
+## Distribution Model
+
+This repository serves two audiences through a single source of truth (see [ADR-005](./docs/dev/adrs/ADR-005-open-source-thin-activate-layer.md)):
+
+| Audience | Content | Channel |
+|----------|---------|--------|
+| **Internal (Ad Hoc employees)** | Full kit: `core/` + `ad-hoc/` + `ad-hoc-advanced/` | Direct install or bundle from this repo |
+| **Public (open-source users)** | Thin layer: `core/` only | [activate-framework-adhoc](https://github.com/adhocteam/activate-framework-adhoc) downstream repo |
+
+The `src/manifest.json` controls which files are shipped to each channel. Files with a `framework` destination in the manifest are synced to the public downstream repository; files without one stay private.
+
+**What goes public (`core/`):**
+
+- Generic AGENTS.md and customization guide
+- General and security instruction files
+- Prompt files for accessibility checks, code review, and ADR creation
+
+**What stays private (`ad-hoc/`, `ad-hoc-advanced/`):**
+
+- Language-specific instructions (Python, TypeScript)
+- Contract-specific prompts (QASP reporting)
+- Proprietary skills (installer, service blueprints, journey maps)
+- Specialized agent definitions (service designer)
+- Internal playbooks, tuned role prompts, and proprietary heuristics
+
+See the [Activate Core Dispatch Contract](#activate-core-dispatch-contract) for the automation that keeps the downstream repo in sync.
+
 ## Related Resources
 
 - [ADR-005: Open-Source Thin Activate Layer](./docs/dev/adrs/ADR-005-open-source-thin-activate-layer.md)
@@ -200,7 +236,7 @@ This directory holds the authoring-time resources used to build distributable gu
 | Path | Purpose |
 |------|---------|
 | `instructions/distribution-builder.instructions.md` | Passive guardrails for any `src/**` edits—enforces ADR-001 hierarchy, naming, and template usage |
-| `skills/distribution-builder/SKILL.md` | Active workflow for generating all four distributable file types from `templates/` |
+| `skills/distribution-builder/SKILL.md` | Active workflow for generating all five distributable file types from `templates/` |
 | `agents/` | Reserved for specialized personas if the workflow grows more complex |
 
 ### How They Work Together
@@ -208,4 +244,4 @@ This directory holds the authoring-time resources used to build distributable gu
 - **Skill (explicit):** Invoke `distribution-builder` to scaffold new files in `src/` using the placeholder templates.
 - **Instruction (implicit):** Activates automatically whenever you edit files under `src/`, providing guardrails without explicit invocation.
 
-Per [ADR-001](docs/dev/adrs/ADR-001-agent-instructions-skills-files.md), the skill consumes templates in `templates/` and emits AGENTS.md, instruction, skill, and agent files. The instruction ensures subsequent edits stay compliant.
+Per [ADR-001](docs/dev/adrs/ADR-001-agent-instructions-skills-files.md), the skill consumes templates in `templates/` and emits AGENTS.md, instruction, prompt, skill, and agent files. The instruction ensures subsequent edits stay compliant.
