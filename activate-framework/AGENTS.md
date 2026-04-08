@@ -60,23 +60,18 @@ type: description
 
 ### Session Logging
 
-<!-- 
-Configure your log location below. Options:
-- `docs/dev/logs/` - Version-controlled logs (good for team visibility)
-- `logs/` or `.logs/` - Add to .gitignore if logs shouldn't be committed
--->
+<!-- Customize the log location below if `docs/dev/logs/` doesn't fit your project. -->
 
-When starting a new feature or branch, create a session log to track work:
+When starting a new feature or branch, create a session log in `docs/dev/logs/` to track work:
 
-1. **Verify log location on first use**
-   - Confirm with the user where session logs should be stored
-   - If the directory doesn't exist, ask before creating it
-   - Check if logs should be added to `.gitignore` or, if that file is not appropriate, another exclude approach like `.git/info/exclude`
+1. **Create the log directory if needed**
+   - Session logs go in `docs/dev/logs/` (version-controlled for team visibility)
+   - Create the directory on first use
 
 2. **Create the log file** before any other work
-   - Format: `<log-directory>/YYYY-MM-DD-<branch-name>.md`
+   - Format: `docs/dev/logs/YYYY-MM-DD-<branch-name>.md`
    - Include: Objective, Related (issue/PR links), empty Work Completed section
-s
+
 3. **Update incrementally** after each commit:
    - Add entry to Work Completed with timestamp
    - Document your reasoning: why this approach? what alternatives were considered?
