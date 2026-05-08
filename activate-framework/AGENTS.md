@@ -66,7 +66,13 @@ When starting a new feature or branch, create a session log in `docs/dev/logs/` 
 
 1. **Create the log directory if needed**
    - Session logs go in `docs/dev/logs/` (version-controlled for team visibility)
-   - Create the directory on first use
+   - If the directory doesn't exist, create it before writing your first log:
+
+     ```bash
+     mkdir -p docs/dev/logs
+     ```
+
+   - Add a `.gitkeep` if the directory would otherwise be empty, so it is tracked by git.
 
 2. **Create the log file** before any other work
    - Format: `docs/dev/logs/YYYY-MM-DD-<branch-name>.md`
@@ -125,6 +131,88 @@ This ensures the repository continuously evolves based on real usage.
 1. Clone the repository
 2. Install dependencies
 3. Review the instruction files in `.github/instructions/`
+
+## Error Recovery
+
+When things go wrong during a session, use these procedures to recover without losing work.
+
+### Merge Conflicts
+
+```bash
+# Pull the latest changes and start a merge
+git fetch origin
+git merge origin/main
+
+# Git will mark conflicted files — open each one and resolve conflicts
+# Look for <<<<<<, =======, and >>>>>>> markers
+# After resolving all files:
+git add .
+git commit  # Finalize the merge commit
+```
+
+### Diverged Branch
+
+```bash
+# Your branch has diverged from the remote — reconcile with rebase
+git fetch origin
+git rebase origin/main
+
+# If conflicts appear during rebase:
+# 1. Resolve each conflict in the marked files
+# 2. git add <resolved-file>
+# 3. git rebase --continue
+# To abort the rebase and return to the pre-rebase state:
+# git rebase --abort
+```
+
+### Failed Rebase
+
+```bash
+# If a rebase fails partway through and you want to start over:
+git rebase --abort
+
+# Then try a merge instead:
+git merge origin/main
+```
+
+### Push Rejected
+
+```bash
+# Remote has new commits you don't have — pull first, then push
+git pull --rebase
+git push
+
+# If pull --rebase fails due to conflicts, resolve them (see above), then:
+git push
+```
+
+### Accidental Commit on Wrong Branch
+
+```bash
+# Move the last commit to a new branch without losing changes
+git branch correct-branch-name     # Create the right branch at current HEAD
+git reset --hard HEAD~1            # Remove the commit from the wrong branch
+git checkout correct-branch-name   # Switch to the correct branch
+```
+
+### Lost Uncommitted Changes
+
+```bash
+# Check if git stash has anything saved
+git stash list
+
+# Restore the most recent stash
+git stash pop
+```
+
+### Verify Recovery
+
+After any recovery, confirm your state is clean:
+
+```bash
+git status          # Should show clean working tree or expected staged files
+git log --oneline -5  # Confirm commit history looks correct
+```
 
 ## Discovering Available Guidance
 
