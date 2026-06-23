@@ -92,6 +92,19 @@ For reference, here are the available file types and where they live:
 - **A multi-step workflow with scripts or templates?** → Skill (`SKILL.md`)
 - **Needs its own persona, tools, or context isolation?** → Custom Agent (`.agent.md`)
 
+## Model Selection
+
+In addition to customizing agent behavior with instructions, prompts, skills, and agents, you can control which AI model handles different tasks. Key options:
+
+- **Model picker** — Manually select a model per conversation in the chat input field
+- **Auto model selection** — Let VS Code route requests to the optimal model based on task complexity
+- **Per-agent model pinning** — Add `model: Model Name (vendor)` to a custom agent's frontmatter to always use a specific model for that agent
+- **Utility model settings** — Configure `chat.utilityModel` and `chat.utilitySmallModel` to use faster/cheaper models for background tasks (commit messages, titles, etc.)
+- **Bring Your Own Key (BYOK)** — Connect models from Azure, Anthropic, Gemini, OpenAI, local providers, or any custom endpoint
+
+For a comprehensive guide to all model management options, see [VS Code Language Models documentation](https://code.visualstudio.com/docs/agent-customization/language-models).
+
 ## Further Reading
 
 - [VS Code Copilot Customization docs](https://code.visualstudio.com/docs/copilot/copilot-customization)
+- [AI Language Models in VS Code](https://code.visualstudio.com/docs/agent-customization/language-models)
