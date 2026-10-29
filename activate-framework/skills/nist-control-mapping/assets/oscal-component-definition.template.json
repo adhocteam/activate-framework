@@ -1,0 +1,93 @@
+{
+  "component-definition": {
+    "uuid": "00000000-0000-4000-8000-000000000001",
+    "metadata": {
+      "title": "REPLACE: Component Definition title",
+      "last-modified": "2026-10-05T00:00:00Z",
+      "version": "0.1.0",
+      "oscal-version": "1.1.2",
+      "roles": [
+        {
+          "id": "provider",
+          "title": "Implementation provider"
+        }
+      ],
+      "parties": [
+        {
+          "uuid": "00000000-0000-4000-8000-000000000002",
+          "type": "organization",
+          "name": "REPLACE: Organization or team name"
+        }
+      ]
+    },
+    "components": [
+      {
+        "uuid": "00000000-0000-4000-8000-000000000003",
+        "type": "software",
+        "title": "REPLACE: Component or capability name",
+        "description": "REPLACE: Describe the component and its scope.",
+        "responsible-roles": [
+          {
+            "role-id": "provider",
+            "party-uuids": [
+              "00000000-0000-4000-8000-000000000002"
+            ]
+          }
+        ],
+        "control-implementations": [
+          {
+            "uuid": "00000000-0000-4000-8000-000000000004",
+            "source": "https://example.org/REPLACE-with-selected-OSCAL-profile-or-catalog",
+            "description": "REPLACE: Identify the catalog/profile and revision used for these mappings.",
+            "implemented-requirements": [
+              {
+                "uuid": "00000000-0000-4000-8000-000000000005",
+                "control-id": "ac-6",
+                "description": "TEMPLATE ONLY: Replace with a verified description of how this component supports the selected control. This example does not assert applicability or compliance.",
+                "props": [
+                  {
+                    "name": "source-path",
+                    "ns": "https://example.org/ns/REPLACE-with-organization-namespace",
+                    "value": "REPLACE: path/to/source-file"
+                  },
+                  {
+                    "name": "source-locator",
+                    "ns": "https://example.org/ns/REPLACE-with-organization-namespace",
+                    "value": "REPLACE: stable symbol, resource address, or JSON Pointer"
+                  },
+                  {
+                    "name": "coverage",
+                    "ns": "https://example.org/ns/REPLACE-with-organization-namespace",
+                    "value": "partial"
+                  },
+                  {
+                    "name": "rationale",
+                    "ns": "https://example.org/ns/REPLACE-with-organization-namespace",
+                    "value": "REPLACE: Explain the specific contribution and its limits."
+                  },
+                  {
+                    "name": "evidence-status",
+                    "ns": "https://example.org/ns/REPLACE-with-organization-namespace",
+                    "value": "not-verified"
+                  }
+                ],
+                "links": [
+                  {
+                    "href": "../../REPLACE/path/to/source-file#stable-locator",
+                    "rel": "related",
+                    "text": "Source implementation"
+                  },
+                  {
+                    "href": "../../REPLACE/path/to/test-or-evidence",
+                    "rel": "related",
+                    "text": "Supporting evidence (not verified)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
